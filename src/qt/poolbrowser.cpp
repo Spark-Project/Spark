@@ -26,12 +26,6 @@ const QString apiBittrexMarketSummary = "http://api.getsparkcoin.com/bittrex/mar
 const QString apiBittrexTrades = "http://api.getsparkcoin.com/bittrex/trades.php";
 const QString apiBittrexOrders = "http://api.getsparkcoin.com/bittrex/orders.php";
 
-//Mintpal API
-const QString apiMintpalMarketSummary = "http://api.getsparkcoin.com/mintpal/market.php";
-const QString apiMintpalTrades = "http://api.getsparkcoin.com/mintpal/trades.php";
-const QString apiMintpalOrdersSell = "http://api.getsparkcoin.com/mintpal/orders_sell.php";
-const QString apiMintpalOrdersBuy = "http://api.getsparkcoin.com/mintpal/orders_buy.php";
-
 //Poloniex API
 const QString apiPoloniexMarketSummary = "http://api.getsparkcoin.com/poloniex/market.php";
 const QString apiPoloniex24hVolume = "http://api.getsparkcoin.com/poloniex/chartdata.php";
@@ -51,12 +45,6 @@ double _dBtcPriceLast = 0;
 BittrexMarketSummary* _bittrexMarketSummary = new BittrexMarketSummary();
 BittrexTrades* _bittrexTrades = new BittrexTrades();
 BittrexOrders* _bittrexOrders = new BittrexOrders();
-
-//Mintpal Globals
-MintpalMarketSummary* _mintpalMarketSummary = new MintpalMarketSummary();
-MintpalTrades* _mintpalTrades = new MintpalTrades();
-MintpalOrders* _mintpalOrders = new MintpalOrders();
-QStringList _mintpalApiResponseOrdersSell;
 
 //Poloniex Globals
 PoloniexMarketSummary* _poloniexMarketSummary = new PoloniexMarketSummary();
@@ -81,13 +69,6 @@ PoolBrowser::PoolBrowser(QWidget* parent) : QWidget(parent), ui(new Ui::PoolBrow
     ui->qCustomPlotBittrexOrderDepth->addGraph();
     ui->qCustomPlotBittrexOrderDepth->addGraph();
     ui->qCustomPlotBittrexOrderDepth->setBackground(QBrush(QColor("#edf1f7")));
-
-    ui->qCustomPlotMintpalTrades->addGraph();
-    ui->qCustomPlotMintpalTrades->setBackground(QBrush(QColor("#edf1f7")));
-
-    ui->qCustomPlotMintpalOrderDepth->addGraph();
-    ui->qCustomPlotMintpalOrderDepth->addGraph();
-    ui->qCustomPlotMintpalOrderDepth->setBackground(QBrush(QColor("#edf1f7")));
 
     ui->qCustomPlotPoloniexTrades->addGraph();
     ui->qCustomPlotPoloniexTrades->setBackground(QBrush(QColor("#edf1f7")));
@@ -125,9 +106,7 @@ void PoolBrowser::on_btnUpdateMarketData_clicked() {
 void PoolBrowser::on_lblBittrexMarketLink_linkActivated(const QString &link) {
     QDesktopServices::openUrl(QUrl(link));
 }
-void PoolBrowser::on_lblMintpalMarketLink_linkActivated(const QString &link) {
-    QDesktopServices::openUrl(QUrl(link));
-}
+
 void PoolBrowser::on_lblPoloniexMarketLink_linkActivated(const QString &link) {
     QDesktopServices::openUrl(QUrl(link));
 }
@@ -144,11 +123,6 @@ void PoolBrowser::pollAPIs() {
     getRequest(apiBittrexTrades);
     getRequest(apiBittrexOrders);
 
-    getRequest(apiMintpalMarketSummary);
-    getRequest(apiMintpalTrades);
-    getRequest(apiMintpalOrdersSell);
-    getRequest(apiMintpalOrdersBuy);
-
     getRequest(apiPoloniexMarketSummary);
     getRequest(apiPoloniex24hVolume);
     getRequest(apiPoloniexTrades);
@@ -160,17 +134,15 @@ void PoolBrowser::pollAPIs() {
 
 void PoolBrowser::processOverview() {
     double averageBittrexCurrent = _bittrexMarketSummary->getLastCurrent(double()) > 0 ? _bittrexMarketSummary->getLastCurrent(double()) : 0.00000001;
-    double averageMintpalCurrent = _mintpalMarketSummary->getLastCurrent(double()) > 0 ? _mintpalMarketSummary->getLastCurrent(double()) : 0.00000001;
     double averagePoloniexCurrent = _poloniexMarketSummary->getLastCurrent(double()) > 0 ? _poloniexMarketSummary->getLastCurrent(double()) : 0.00000001;
     double averageCryptsyCurrent = _cryptsyTrades->getLastCurrent(double()) > 0 ? _cryptsyTrades->getLastCurrent(double()) : 0.00000001;
-    double averageAllCurrent = (averageBittrexCurrent + averageCryptsyCurrent + averageMintpalCurrent + averagePoloniexCurrent) / 4;
+    double averageAllCurrent = (averageBittrexCurrent + averageCryptsyCurrent + averagePoloniexCurrent) / 3;
 
     double averageBittrexLast = _bittrexMarketSummary->getLastPrev(double()) > 0 ? _bittrexMarketSummary->getLastPrev(double()) : 0.00000001;
-    double averageMintpalLast = _mintpalMarketSummary->getLastPrev(double()) > 0 ? _mintpalMarketSummary->getLastPrev(double()) : 0.00000001;
     double averagePoloniexLast = _poloniexMarketSummary->getLastPrev(double()) > 0 ? _poloniexMarketSummary->getLastPrev(double()) : 0.00000001;
     double averageCryptsyLast = _cryptsyTrades->getLastPrev(double()) > 0 ? _cryptsyTrades->getLastPrev(double()) : 0.00000001;
 
-    double averageAllLast = (averageBittrexLast + averageCryptsyLast + averageMintpalLast + averagePoloniexLast) / 4;
+    double averageAllLast = (averageBittrexLast + averageCryptsyLast + averagePoloniexLast) / 3;
 
     updateLabel(ui->lblOverviewScAvgPrice,
                 averageAllCurrent,
@@ -186,19 +158,6 @@ void PoolBrowser::processOverview() {
 
     updateLabel(ui->lblOverviewBittrexPerc,
                 (_bittrexMarketSummary->getLastCurrent(double()) - averageAllCurrent) / averageAllCurrent * 100,
-                0,
-                QString(""),
-                QString("%"),
-                2);
-
-    updateLabel(ui->lblOverviewMintpalBtc,
-                _mintpalMarketSummary->getLastCurrent(double()),
-                _mintpalMarketSummary->getLastPrev(double()),
-                QString("B"),
-                8);
-
-    updateLabel(ui->lblOverviewMintpalPerc,
-                (_mintpalMarketSummary->getLastCurrent(double()) - averageAllCurrent) / averageAllCurrent * 100,
                 0,
                 QString(""),
                 QString("%"),
@@ -255,14 +214,6 @@ void PoolBrowser::parseNetworkResponse(QNetworkReply* response) {
         bittrexTrades(response);
     } else if (apiCall == apiBittrexOrders) {
         bittrexOrders(response);
-    } else if (apiCall == apiMintpalMarketSummary) {
-        mintpalMarketSummary(response);
-    } else if (apiCall == apiMintpalTrades) {
-        mintpalTrades(response);
-    } else if (apiCall == apiMintpalOrdersSell) {
-        mintpalOrdersSell(response);
-    } else if (apiCall == apiMintpalOrdersBuy) {
-        mintpalOrdersBuy(response);
     } else if (apiCall == apiPoloniexMarketSummary) {
         poloniexMarketSummary(response);
     } else if (apiCall == apiPoloniex24hVolume) {
@@ -279,7 +230,6 @@ void PoolBrowser::parseNetworkResponse(QNetworkReply* response) {
 
     if (_bittrexMarketSummary->getLastPrev(double()) > 0 &&
             _cryptsyTrades->getLastCurrent(double()) > 0 &&
-            _mintpalMarketSummary->getLastCurrent(double()) > 0 &&
             _poloniexMarketSummary->getLastCurrent(double()) > 0) {
         ui->iconOverviewUpdateWait->setVisible(false);
     }
@@ -667,348 +617,6 @@ void PoolBrowser::bittrexOrders(QNetworkReply* response) {
         ui->qCustomPlotBittrexOrderDepth->replot();
     } catch (exception ex) {
         printf("PoolBrowser::bittrexOrders: %s\r\n", ex.what());
-    }
-}
-
-void PoolBrowser::mintpalMarketSummary(QNetworkReply* response) {
-    try {
-        QString apiResponse = response->readAll();
-
-        apiResponse = apiResponse.replace("[", "").replace("]", "");
-
-        mValue jsonResponse = new mValue();
-
-        //Make sure the response is valid
-        if (read_string(apiResponse.toStdString(), jsonResponse)) {
-            mObject jsonObject = jsonResponse.get_obj();
-
-            try {
-                _mintpalMarketSummary->setHighCurrent(getPairValue(jsonObject, "24hhigh").get_str());
-                _mintpalMarketSummary->setLowCurrent(getPairValue(jsonObject, "24hlow").get_str());
-                _mintpalMarketSummary->setVolumeCurrent(getPairValue(jsonObject, "24hvol").get_str());
-                _mintpalMarketSummary->setLastCurrent(getPairValue(jsonObject, "last_price").get_str());
-                _mintpalMarketSummary->setBaseVolumeCurrent(getPairValue(jsonObject, "24hvol").get_str());
-                _mintpalMarketSummary->setBidCurrent(getPairValue(jsonObject, "top_bid").get_str());
-                _mintpalMarketSummary->setAskCurrent(getPairValue(jsonObject, "top_ask").get_str());
-                _mintpalMarketSummary->setPrevDayCurrent(getPairValue(jsonObject, "yesterday_price").get_str());
-                _mintpalMarketSummary->setChangeCurrent(getPairValue(jsonObject, "change").get_str());
-            } catch (exception) {} //API did not return all needed data so skip processing market summary
-
-        }
-
-        updateLabel(ui->lblMintpalHighBtc,
-                    _mintpalMarketSummary->getHighCurrent(double()),
-                    _mintpalMarketSummary->getHighPrev(double()),
-                    QString("B"),
-                    8);
-
-        updateLabel(ui->lblMintpalLowBtc,
-                    _mintpalMarketSummary->getLowCurrent(double()),
-                    _mintpalMarketSummary->getLowPrev(double()),
-                    QString("B"),
-                    8);
-
-        updateLabel(ui->lblMintpalCloseBtc,
-                    _mintpalMarketSummary->getPrevDayCurrent(double()),
-                    _mintpalMarketSummary->getPrevDayPrev(double()),
-                    QString("B"),
-                    8);
-
-        updateLabel(ui->lblMintpalChangePerc,
-                    _mintpalMarketSummary->getChangeCurrent(double()),
-                    _mintpalMarketSummary->getChangePrev(double()),
-                    QString(""),
-                    QString("%"),
-                    2);
-
-        updateLabel(ui->lblMintpalVolumeUsd,
-                    _mintpalMarketSummary->getBaseVolumeCurrent(double()) * _dBtcPriceCurrent,
-                    _mintpalMarketSummary->getBaseVolumePrev(double()) * _dBtcPriceCurrent,
-                    QString(""),
-                    2);
-
-        updateLabel(ui->lblMintpalVolumeSc,
-                    _mintpalMarketSummary->getVolumeCurrent(double()) / _mintpalMarketSummary->getLastCurrent(double()),
-                    _mintpalMarketSummary->getVolumePrev(double()) / _mintpalMarketSummary->getLastCurrent(double()),
-                    QString(""),
-                    4);
-
-        updateLabel(ui->lblMintpalVolumeBtc,
-                    _mintpalMarketSummary->getBaseVolumeCurrent(double()),
-                    _mintpalMarketSummary->getBaseVolumePrev(double()),
-                    QString(""),
-                    4);
-
-        updateLabel(ui->lblMintpalLastBtc,
-                    _mintpalMarketSummary->getLastCurrent(double()),
-                    _mintpalMarketSummary->getLastPrev(double()),
-                    QString("B"),
-
-                    8);
-
-        updateLabel(ui->lblMintpalLastUsd,
-                    _mintpalMarketSummary->getLastCurrent(double()) * _dBtcPriceCurrent,
-                    _mintpalMarketSummary->getLastPrev(double()) * _dBtcPriceCurrent,
-                    QString("$"),
-                    8);
-
-        updateLabel(ui->lblMintpalAskBtc,
-                    _mintpalMarketSummary->getAskCurrent(double()),
-                    _mintpalMarketSummary->getAskPrev(double()),
-                    QString("B"),
-                    8);
-
-        updateLabel(ui->lblMintpalAskUsd,
-                    _mintpalMarketSummary->getAskCurrent(double()) * _dBtcPriceCurrent,
-                    _mintpalMarketSummary->getAskPrev(double()) * _dBtcPriceCurrent,
-                    QString("$"),
-                    8);
-
-        updateLabel(ui->lblMintpalBidBtc,
-                    _mintpalMarketSummary->getBidCurrent(double()),
-                    _mintpalMarketSummary->getBidPrev(double()),
-                    QString("B"),
-                    8);
-
-        updateLabel(ui->lblMintpalBidUsd,
-                    _mintpalMarketSummary->getBidCurrent(double()) * _dBtcPriceCurrent,
-                    _mintpalMarketSummary->getBidPrev(double()) * _dBtcPriceCurrent,
-                    QString("$"),
-                    8);
-
-        _mintpalMarketSummary->setAskPrev(_mintpalMarketSummary->getAskCurrent(double()));
-        _mintpalMarketSummary->setBaseVolumePrev(_mintpalMarketSummary->getBaseVolumeCurrent(double()));
-        _mintpalMarketSummary->setBidPrev(_mintpalMarketSummary->getBidCurrent(double()));
-        _mintpalMarketSummary->setChangePrev(_mintpalMarketSummary->getChangeCurrent(double()));
-        _mintpalMarketSummary->setHighPrev(_mintpalMarketSummary->getHighCurrent(double()));
-        _mintpalMarketSummary->setLowPrev(_mintpalMarketSummary->getLowCurrent(double()));
-        _mintpalMarketSummary->setPrevDayPrev(_mintpalMarketSummary->getPrevDayCurrent(double()));
-        _mintpalMarketSummary->setLastPrev(_mintpalMarketSummary->getLastCurrent(double()));
-        _mintpalMarketSummary->setVolumePrev(_mintpalMarketSummary->getVolumeCurrent(double()));
-
-        _dScPriceLast = _dBtcPriceCurrent * _mintpalMarketSummary->getLastCurrent(double());
-    } catch (exception ex) {
-        printf("PoolBrowser::mintpalMarketSummary: %s\r\n", ex.what());
-    }
-}
-void PoolBrowser::mintpalTrades(QNetworkReply* response) {
-    try {
-        int z = 0;
-        double high = 0;
-        double low = 100000;
-
-        ui->tblMintpalTrades->clear();
-        ui->tblMintpalTrades->setColumnWidth(0, 60);
-        ui->tblMintpalTrades->setColumnWidth(1, 110);
-        ui->tblMintpalTrades->setColumnWidth(2, 110);
-        ui->tblMintpalTrades->setColumnWidth(3, 100);
-        ui->tblMintpalTrades->setColumnWidth(4, 160);
-        ui->tblMintpalTrades->setSortingEnabled(false);
-
-        QString apiResponse = response->readAll();
-
-        apiResponse = apiResponse.replace("{\"count\":100,\"trades\":[", "").replace("]}", "").replace("},{", "}{");
-
-        QStringList qslApiResponse = apiResponse.split("{", QString::SkipEmptyParts);
-
-        int tradeCount = qslApiResponse.count();
-        QVector<double> xAxis(tradeCount), yAxis(tradeCount);
-
-        for (int i = 0; i < tradeCount; i++) {
-            mValue jsonResponse = new mValue();
-
-            //Fix missing leading brace caused by split string, otherwise it will not be recognized an an mObject
-            qslApiResponse[i].replace("\"time", "{\"time");
-
-            //json_spirit does not handle null so make it "null"
-            qslApiResponse[i].replace("null", "\"null\"");
-
-            //Make sure the response is valid
-            if (read_string(qslApiResponse[i].toStdString(), jsonResponse)) {
-                mObject jsonObject = jsonResponse.get_obj();
-
-                try {
-                    _mintpalTrades->setTimeStamp(getPairValue(jsonObject, "time").get_str());
-                    _mintpalTrades->setQuantity(getPairValue(jsonObject, "amount").get_str());
-                    _mintpalTrades->setPrice(getPairValue(jsonObject, "price").get_str());
-                    _mintpalTrades->setTotal(getPairValue(jsonObject, "total").get_str());
-                    _mintpalTrades->setOrderType(getPairValue(jsonObject, "type").get_real());
-                } catch (exception ex) {
-                    printf("PoolBrowser::mintpalTrades: %s\r\n", ex.what()); //API did not return all needed data so skip this trade
-                }
-
-                QTreeWidgetItem * qtTrades = new QTreeWidgetItem();
-
-                qtTrades->setText(0, _mintpalTrades->getOrderType());
-                qtTrades->setText(1, _mintpalTrades->getPrice(QString()));
-                qtTrades->setText(2, _mintpalTrades->getQuantity(QString()));
-                qtTrades->setText(3, _mintpalTrades->getTotal(QString()));
-                qtTrades->setText(4, _mintpalTrades->getTimeStamp());
-
-                ui->tblMintpalTrades->addTopLevelItem(qtTrades);
-
-                xAxis[z] = tradeCount - z;
-                yAxis[z] = _mintpalTrades->getPrice(double()) * 100000000;
-
-                high = _mintpalTrades->getPrice(double()) > high ? _mintpalTrades->getPrice(double()) : high;
-                low = _mintpalTrades->getPrice(double()) < low ? _mintpalTrades->getPrice(double()) : low;
-
-                z++;
-            }
-        }
-
-        high *=  100000000;
-        low *=  100000000;
-
-        ui->qCustomPlotMintpalTrades->graph(0)->setData(xAxis, yAxis);
-        ui->qCustomPlotMintpalTrades->graph(0)->setPen(QPen(QColor(34, 177, 76)));
-        ui->qCustomPlotMintpalTrades->graph(0)->setBrush(QBrush(QColor(34, 177, 76, 20)));
-
-        ui->qCustomPlotMintpalTrades->xAxis->setRange(1, tradeCount);
-        ui->qCustomPlotMintpalTrades->yAxis->setRange(low, high);
-
-        ui->qCustomPlotMintpalTrades->replot();
-    } catch (exception ex) {
-        printf("PoolBrowser::mintpalTrades: %s\r\n", ex.what());
-    }
-}
-void PoolBrowser::mintpalOrdersSell(QNetworkReply* response) {
-    try {
-        QString apiResponse = response->readAll();
-
-        apiResponse = apiResponse.replace("]}" , "");
-        QStringList qslApiResponse = apiResponse.split("\"orders\":[");
-        _mintpalApiResponseOrdersSell = qslApiResponse[1].replace("},{", "}{").split("{", QString::SkipEmptyParts);
-    } catch (exception ex) {
-        printf("PoolBrowser::mintpalOrdersSell: %s\r\n", ex.what());
-    }
-}
-void PoolBrowser::mintpalOrdersBuy(QNetworkReply* response) {
-    try {
-        int z = 0;
-        double high = 0;
-        double low = 100000;
-        double sumBuys = 0;
-        double sumSells = 0;
-        double sumHighest = 0;
-
-        ui->qTreeWidgetMintpalBuy->clear();
-        ui->qTreeWidgetMintpalBuy->sortByColumn(0, Qt::DescendingOrder);
-        ui->qTreeWidgetMintpalBuy->setSortingEnabled(true);
-
-        ui->qTreeWidgetMintpalSell->clear();
-        ui->qTreeWidgetMintpalSell->sortByColumn(0, Qt::AscendingOrder);
-        ui->qTreeWidgetMintpalSell->setSortingEnabled(true);
-
-        QString apiResponse = response->readAll();
-
-        apiResponse = apiResponse.replace("]}" , "");
-        QStringList qslApiResponse = apiResponse.split("\"orders\":[");
-        QStringList qslApiResponseBuys = qslApiResponse[1].replace("},{", "}{").split("{", QString::SkipEmptyParts);
-        QStringList qslApiResponseSells = _mintpalApiResponseOrdersSell;
-
-        //Use shorest depth as limit and use buy length if they are the same
-        int depth = qslApiResponseBuys.length() > qslApiResponseSells.length()
-                    ? qslApiResponseSells.length() : qslApiResponseSells.length() > qslApiResponseBuys.length()
-                    ? qslApiResponseBuys.length() : qslApiResponseBuys.length();
-
-        //Prevent overflow by limiting depth to 50
-        //Also check for odd number of orders and drop the last one
-        //To avoid an overflow when there are less than 50 orders
-        depth = depth > 50
-                ? 50 : depth % 2 == 1
-                ? depth - 1 : depth;
-
-        QVector<double> xAxisBuys(depth), yAxisBuys(depth);
-        QVector<double> xAxisSells(depth), yAxisSells(depth);
-
-        for (int i = 0; i < depth; i++) {
-            mValue jsonResponse = new mValue();
-
-            //Fix missing leading brace caused by split string, otherwise it will not be recognized an an mObject
-            qslApiResponseBuys[i].replace("\"price", "{\"price");
-            qslApiResponseSells[i].replace("\"price", "{\"price");
-
-            //json_spirit does not handle null so make it "null"
-            qslApiResponseBuys[i].replace("null", "\"null\"");
-            qslApiResponseSells[i].replace("null", "\"null\"");
-
-            //Make sure the response is valid
-            if (read_string(qslApiResponseBuys[i].toStdString(), jsonResponse)) {
-                mObject jsonObjectBuys = jsonResponse.get_obj();
-
-                try {
-                    _mintpalOrders->setQuantity(getPairValue(jsonObjectBuys, "amount").get_str());
-                    _mintpalOrders->setPrice(getPairValue(jsonObjectBuys, "price").get_str());
-                    _mintpalOrders->setOrderType("Buy");
-                } catch (exception ex) {
-                    printf("PoolBrowser::mintpalOrdersBuy: %s\r\n", ex.what()); //API did not return all needed data so skip this order
-                }
-
-                QTreeWidgetItem * qtBuys = new QTreeWidgetItem();
-
-                qtBuys->setText(0, _mintpalOrders->getPrice(QString()));
-                qtBuys->setText(1, _mintpalOrders->getQuantity(QString()));
-
-                ui->qTreeWidgetMintpalBuy->addTopLevelItem(qtBuys);
-
-                sumBuys += _mintpalOrders->getQuantity(double());
-                xAxisBuys[z] = _mintpalOrders->getPrice(double()) * 100000000;
-                yAxisBuys[z] = sumBuys;
-            }
-
-            high = _mintpalOrders->getPrice(double()) > high ? _mintpalOrders->getPrice(double()) : high;
-            low = _mintpalOrders->getPrice(double()) < low ? _mintpalOrders->getPrice(double()) : low;
-
-            //Make sure the response is valid
-            if (read_string(qslApiResponseSells[i].toStdString(), jsonResponse)) {
-                mObject jsonObjectSells = jsonResponse.get_obj();
-
-                try {
-                    _mintpalOrders->setQuantity(getPairValue(jsonObjectSells, "amount").get_str());
-                    _mintpalOrders->setPrice(getPairValue(jsonObjectSells, "price").get_str());
-                    _mintpalOrders->setOrderType("Sell");
-                } catch (exception ex) {
-                    printf("PoolBrowser::mintpalOrdersBuy: %s\r\n", ex.what()); //API did not return all needed data so skip this order
-                }
-
-                QTreeWidgetItem * qtSells = new QTreeWidgetItem();
-
-                qtSells->setText(0, _mintpalOrders->getPrice(QString()));
-                qtSells->setText(1, _mintpalOrders->getQuantity(QString()));
-
-                ui->qTreeWidgetMintpalSell->addTopLevelItem(qtSells);
-
-                sumSells += _mintpalOrders->getQuantity(double());
-                xAxisSells[z] = _mintpalOrders->getPrice(double()) * 100000000;
-                yAxisSells[z] = sumSells;
-            }
-
-            high = _mintpalOrders->getPrice(double()) > high ? _mintpalOrders->getPrice(double()) : high;
-            low = _mintpalOrders->getPrice(double()) < low ? _mintpalOrders->getPrice(double()) : low;
-
-            z++;
-        }
-
-        high *=  100000000;
-        low *=  100000000;
-
-        sumHighest = sumBuys > sumSells ? sumBuys : sumBuys < sumSells ? sumSells : sumBuys;
-
-        ui->qCustomPlotMintpalOrderDepth->graph(0)->setData(xAxisBuys, yAxisBuys);
-        ui->qCustomPlotMintpalOrderDepth->graph(0)->setPen(QPen(QColor(34, 177, 76)));
-        ui->qCustomPlotMintpalOrderDepth->graph(0)->setBrush(QBrush(QColor(34, 177, 76, 20)));
-
-        ui->qCustomPlotMintpalOrderDepth->graph(1)->setData(xAxisSells, yAxisSells);
-        ui->qCustomPlotMintpalOrderDepth->graph(1)->setPen(QPen(QColor(237, 24, 35)));
-        ui->qCustomPlotMintpalOrderDepth->graph(1)->setBrush(QBrush(QColor(237, 24, 35, 20)));
-
-        ui->qCustomPlotMintpalOrderDepth->xAxis->setRange(low, high);
-        ui->qCustomPlotMintpalOrderDepth->yAxis->setRange(low, sumHighest);
-
-        ui->qCustomPlotMintpalOrderDepth->replot();
-    } catch (exception ex) {
-        printf("PoolBrowser::mintpalOrdersBuy: %s\r\n", ex.what());
     }
 }
 
